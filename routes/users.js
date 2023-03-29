@@ -1,6 +1,8 @@
 var express = require('express');
 const { connectDb, closeConnection } = require('../config');
 var router = express.Router();
+const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
 /* GET users listing. */
 
@@ -11,10 +13,10 @@ router.post('/login', async (req, res) => {
     const user = await db.collection('login').findOne({ UserName })
 
     if (user) {
-      console.log(user.Password, Password)
       if (Password == user.Password) {
+        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: "3h" })
         await closeConnection();
-        return res.send(user)
+        return res.send(token)
       }
       else {
         await closeConnection();
@@ -34,7 +36,10 @@ router.post('/login', async (req, res) => {
 
 router.post('/reg', async (req, res) => {
   try {
-    const { UserName, Password } = req.body
+    let { UserName, Password } = req.body
+    const salt = await bcrypt.genSalt(10)
+    const hash = await bcrypt.hash(Password, salt);
+    Password = hash
     const db = await connectDb()
     const user = await db.collection('login').insertOne({ UserName, Password })
     await closeConnection()
