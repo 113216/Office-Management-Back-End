@@ -13,7 +13,8 @@ router.post('/login', async (req, res) => {
     const user = await db.collection('login').findOne({ UserName })
 
     if (user) {
-      if (Password == user.Password) {
+      const hash = await bcrypt.compare(Password, user.Password)
+      if (hash) {
         const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: "3h" })
         await closeConnection();
         return res.send(token)
